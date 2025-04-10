@@ -1,98 +1,108 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using WebApi.DBOperations;
+using WebApi;
 
-namespace WebApi.AddController
+namespace BookStore.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]s")]
-    public class BookController : ControllerBase
+    [Route("api/[controller]")]
+    public class BooksController : ControllerBase
     {
-        private static List<Book> BookList = new List<Book>()
+        private readonly BookStoreDbContext _context;
+
+        public BooksController(BookStoreDbContext context)
         {
-            new Book{
-
-                Id = 1,
-                Title = "Test",
-                GenreId = 1,
-                PageCount = 100,
-                PublishDate = new DateTime(2001,12,12)
-            },
-            new Book{
-
-                Id = 2,
-                Title = "Test1",
-                GenreId = 2,
-                PageCount = 152,
-                PublishDate = new DateTime(2001,06,18)
-            },
-            new Book{
-
-                Id = 3,
-                Title = "Test3",
-                GenreId = 1,
-                PageCount = 150,
-                PublishDate = new DateTime(2001,02,12)
-            },
-
-        };
+            _context = context;
+        }
 
         [HttpGet]
-        public List<Book> GetBooks()
+        public IActionResult GetAll([FromQuery] string? name, [FromQuery] string? sort)
         {
-            var bookList = BookList.OrderBy(x=> x.Id).ToList<Book>();
-            return bookList;
+            var result = _context.Books.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(name))
+                result = result.Where(x => x.Title.Contains(name));
+
+            if (!string.IsNullOrWhiteSpace(sort) && sort == "title")
+                result = result.OrderBy(x => x.Title);
+
+            var books = result.Select(x => new BookResponse
+            {
+                Id = x.Id,
+                Title = x.Title,
+                
+            }).ToList();
+
+            return Ok(books);
         }
 
         [HttpGet("{id}")]
-        public Book GetById(int id)
+        public IActionResult GetById(int id)
         {
-            var book = BookList.Where(book=> book.Id == id).SingleOrDefault();
-            return book;
+            var book = _context.Books.Find(id);
+            if (book == null) return NotFound(new { message = "Book not found." });
+
+            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
         }
 
         [HttpPost]
-        public IActionResult AddBook([FromBody] Book newBook)
+        public IActionResult Create([FromBody] BookRequest request)
         {
-            var book = BookList.SingleOrDefault(x => x.Title == newBook.Title);
-            if (book is not null)
-                return BadRequest();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            BookList.Add(newBook);
-            return Ok();
+            var entity = new Book
+            {
+                Title = request.Title,
+               
+            };
 
+            _context.Books.Add(entity);
+            _context.SaveChanges();
+
+            var response = new BookResponse { Id = entity.Id, Title = entity.Title };
+            return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put([FromRoute] int id, [FromBody] Book book)
+        public IActionResult Update(int id, [FromBody] BookRequest request)
         {
-            var newBook = BookList.SingleOrDefault(x => x.Id == id);
+            var book = _context.Books.Find(id);
+            if (book == null) return NotFound(new { message = "Book not found." });
 
-            if (newBook == null)
-            {
-                return BadRequest(); 
-            }
-            newBook.Title = book.Title;
-            newBook.GenreId = book.GenreId;
-            newBook.PageCount = book.PageCount;
-            newBook.PublishDate = book.PublishDate;
+            book.Title = request.Title;
+            
 
-            return Ok(newBook);
+            _context.SaveChanges();
+
+            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
         }
 
+        [HttpPatch("{id}")]
+        public IActionResult Patch(int id, [FromBody] JsonElement patchData)
+        {
+            var book = _context.Books.Find(id);
+            if (book == null) return NotFound(new { message = "Book not found." });
+
+            if (patchData.TryGetProperty("title", out var title))
+                book.Title = title.GetString();
+
+            _context.SaveChanges();
+
+            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
+        }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete([FromRoute] int id)
+        public IActionResult Delete(int id)
         {
-            var book = BookList.SingleOrDefault(x => x.Id == id);
+            var book = _context.Books.Find(id);
+            if (book == null) return NotFound(new { message = "Book not found." });
 
-            if (book == null)
-            {
-                return BadRequest(); 
-            }
+            _context.Books.Remove(book);
+            _context.SaveChanges();
 
-            BookList.Remove(book); 
-            return NoContent(); 
+            return NoContent();
         }
-
-
     }
 }
