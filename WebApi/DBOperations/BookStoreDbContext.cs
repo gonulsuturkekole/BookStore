@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-
 namespace WebApi.DBOperations
 {
     public class BookStoreDbContext : DbContext
@@ -9,5 +8,7 @@ namespace WebApi.DBOperations
         public BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : base(options) { }
 
         public DbSet<Book> Books { get; set; }
+
+     
     }
 }

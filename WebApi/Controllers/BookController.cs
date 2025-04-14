@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using WebApi.DBOperations;
 using WebApi;
+using WebApi.Impl.Query;
+using WebApi.Impl.Command;
+using WebApi.Impl.Model;
+using AutoMapper;
+using MediatR;
+
+
 
 namespace BookStore.Api.Controllers
 {
@@ -11,98 +16,106 @@ namespace BookStore.Api.Controllers
     public class BooksController : ControllerBase
     {
         private readonly BookStoreDbContext _context;
+        private readonly IMapper _mapper;
 
-        public BooksController(BookStoreDbContext context)
+        public BooksController(BookStoreDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
+
         [HttpGet]
-        public IActionResult GetAll([FromQuery] string? name, [FromQuery] string? sort)
+        public IActionResult GetBooks()
         {
-            var result = _context.Books.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(name))
-                result = result.Where(x => x.Title.Contains(name));
-
-            if (!string.IsNullOrWhiteSpace(sort) && sort == "title")
-                result = result.OrderBy(x => x.Title);
-
-            var books = result.Select(x => new BookResponse
-            {
-                Id = x.Id,
-                Title = x.Title,
+            GetBooksQuery query = new GetBooksQuery(_context);
+            var result = query.Handle();
+            return Ok(result);
                 
-            }).ToList();
-
-            return Ok(books);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public Book GetById(int id)
         {
-            var book = _context.Books.Find(id);
-            if (book == null) return NotFound(new { message = "Book not found." });
-
-            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
+            var book = _context.Books.Where(book => book.Id == id).SingleOrDefault();
+            return book;
         }
 
         [HttpPost]
-        public IActionResult Create([FromBody] BookRequest request)
+        public IActionResult Create([FromBody] BookResponseModel newBook)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var entity = new Book
+            CreateBookCommand command = new CreateBookCommand(_context);
+            try
             {
-                Title = request.Title,
-               
-            };
-
-            _context.Books.Add(entity);
-            _context.SaveChanges();
-
-            var response = new BookResponse { Id = entity.Id, Title = entity.Title };
-            return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+                command.Model = _mapper.Map<CreateBookModel>(newBook); // ?? Mapping burada!
+                command.Handle();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+           
+            return Ok();
         }
 
-        [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] BookRequest request)
-        {
-            var book = _context.Books.Find(id);
-            if (book == null) return NotFound(new { message = "Book not found." });
 
-            book.Title = request.Title;
-            
 
-            _context.SaveChanges();
 
-            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
-        }
+        //{
+        //    if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        [HttpPatch("{id}")]
-        public IActionResult Patch(int id, [FromBody] JsonElement patchData)
-        {
-            var book = _context.Books.Find(id);
-            if (book == null) return NotFound(new { message = "Book not found." });
+        //    var entity = new Book
+        //    {
+        //        Title = request.Title,
+        //    };
 
-            if (patchData.TryGetProperty("title", out var title))
-                book.Title = title.GetString();
+        //    _context.Books.Add(entity);
+        //    _context.SaveChanges();
 
-            _context.SaveChanges();
+        //    var response = new BookResponse { Id = entity.Id, Title = entity.Title };
+        //    return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+        //}
 
-            return Ok(new BookResponse { Id = book.Id, Title = book.Title });
-        }
+        //[HttpPut("{id}")]
+        //public IActionResult Update(int id, [FromBody] BookRequest request)
+        //{
+        //    var book = _context.Books.Find(id);
+        //    if (book == null) return NotFound(new { message = "Book not found." });
 
-        [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
-        {
-            var book = _context.Books.Find(id);
-            if (book == null) return NotFound(new { message = "Book not found." });
+        //    book.Title = request.Title;
 
-            _context.Books.Remove(book);
-            _context.SaveChanges();
 
-            return NoContent();
-        }
+        //    _context.SaveChanges();
+
+        //    return Ok(new BookResponse { Id = book.Id, Title = book.Title });
+        //}
+
+        //[HttpPatch("{id}")]
+        //public IActionResult Patch(int id, [FromBody] JsonElement patchData)
+        //{
+        //    var book = _context.Books.Find(id);
+        //    if (book == null) return NotFound(new { message = "Book not found." });
+
+        //    if (patchData.TryGetProperty("title", out var title))
+        //        book.Title = title.GetString();
+
+        //    _context.SaveChanges();
+
+        //    return Ok(new BookResponse { Id = book.Id, Title = book.Title });
+        //}
+
+        //[HttpDelete("{id}")]
+        //public IActionResult Delete(int id)
+        //{
+        //    var book = _context.Books.Find(id);
+        //    if (book == null) return NotFound(new { message = "Book not found." });
+
+        //    _context.Books.Remove(book);
+        //    _context.SaveChanges();
+
+        //    return NoContent();
+        //}
+
+
     }
-}
+     }
