@@ -24,21 +24,33 @@ namespace BookStore.Api.Controllers
             _mapper = mapper;
         }
 
-
-        [HttpGet]
-        public IActionResult GetBooks()
+        [HttpGet("GetAll")]
+        public IActionResult GetAllBooks()
         {
             GetBooksQuery query = new GetBooksQuery(_context);
             var result = query.Handle();
             return Ok(result);
-                
         }
 
+
+
         [HttpGet("{id}")]
-        public Book GetById(int id)
+        public IActionResult GetById(int id)
         {
-            var book = _context.Books.Where(book => book.Id == id).SingleOrDefault();
-            return book;
+            BookDetailResponseModel result;
+            try
+            {
+                GetBookDetailQuery query = new GetBookDetailQuery(_context);
+                query.BookId = id;
+                result = query.Handle();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            return Ok(result);
+
+
         }
 
         [HttpPost]
@@ -47,7 +59,7 @@ namespace BookStore.Api.Controllers
             CreateBookCommand command = new CreateBookCommand(_context);
             try
             {
-                command.Model = _mapper.Map<CreateBookModel>(newBook); // ?? Mapping burada!
+                command.Model = _mapper.Map<CreateBookModel>(newBook); 
                 command.Handle();
             }
             catch (Exception ex)
@@ -61,60 +73,39 @@ namespace BookStore.Api.Controllers
 
 
 
-        //{
-        //    if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        //    var entity = new Book
-        //    {
-        //        Title = request.Title,
-        //    };
+        [HttpPut("{id}")]
+        public IActionResult UpdateBook(int id, [FromBody] UpdateBookModel updatedBook)
+        {
+            try
+            {
+                UpdateBookCommand command = new UpdateBookCommand(_context);
+                command.BookId = id;
+                command.Model = updatedBook;
+                command.Handle();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
 
-        //    _context.Books.Add(entity);
-        //    _context.SaveChanges();
+            return Ok();
+        }
+   
 
-        //    var response = new BookResponse { Id = entity.Id, Title = entity.Title };
-        //    return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
-        //}
+ 
 
-        //[HttpPut("{id}")]
-        //public IActionResult Update(int id, [FromBody] BookRequest request)
-        //{
-        //    var book = _context.Books.Find(id);
-        //    if (book == null) return NotFound(new { message = "Book not found." });
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            var book = _context.Books.Find(id);
+            if (book == null) return NotFound(new { message = "Book not found." });
 
-        //    book.Title = request.Title;
+            _context.Books.Remove(book);
+            _context.SaveChanges();
 
-
-        //    _context.SaveChanges();
-
-        //    return Ok(new BookResponse { Id = book.Id, Title = book.Title });
-        //}
-
-        //[HttpPatch("{id}")]
-        //public IActionResult Patch(int id, [FromBody] JsonElement patchData)
-        //{
-        //    var book = _context.Books.Find(id);
-        //    if (book == null) return NotFound(new { message = "Book not found." });
-
-        //    if (patchData.TryGetProperty("title", out var title))
-        //        book.Title = title.GetString();
-
-        //    _context.SaveChanges();
-
-        //    return Ok(new BookResponse { Id = book.Id, Title = book.Title });
-        //}
-
-        //[HttpDelete("{id}")]
-        //public IActionResult Delete(int id)
-        //{
-        //    var book = _context.Books.Find(id);
-        //    if (book == null) return NotFound(new { message = "Book not found." });
-
-        //    _context.Books.Remove(book);
-        //    _context.SaveChanges();
-
-        //    return NoContent();
-        //}
+            return NoContent();
+        }
 
 
     }

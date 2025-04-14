@@ -28,9 +28,6 @@ namespace WebApi.Impl.Command
             _dbContext.Books.Add(book);
             _dbContext.SaveChanges();
 
-
-
-
         }
     }
 }
