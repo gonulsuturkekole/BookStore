@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DBOperations;
-using WebApi;
 using WebApi.Impl.Query;
 using WebApi.Impl.Command;
 using WebApi.Impl.Model;
 using AutoMapper;
-using MediatR;
-
+using Microsoft.AspNetCore.JsonPatch;
 
 
 namespace BookStore.Api.Controllers
@@ -32,8 +30,6 @@ namespace BookStore.Api.Controllers
             return Ok(result);
         }
 
-
-
         [HttpGet("{id}")]
         public IActionResult GetById(int id)
         {
@@ -53,25 +49,44 @@ namespace BookStore.Api.Controllers
 
         }
 
+        [HttpGet("list")]
+        public IActionResult ListBooks([FromQuery] string name, [FromQuery] string sortBy = "title")
+        {
+            var books = _context.Books.AsQueryable();
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                books = books.Where(b => b.Title.Contains(name));
+            }
+
+            if (sortBy == "date")
+                books = books.OrderBy(b => b.PublishDate);
+            else
+                books = books.OrderBy(b => b.Title);
+
+            return Ok(books.ToList());
+        }
+
+
         [HttpPost]
         public IActionResult Create([FromBody] BookResponseModel newBook)
         {
-            CreateBookCommand command = new CreateBookCommand(_context);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
-                command.Model = _mapper.Map<CreateBookModel>(newBook); 
+                CreateBookCommand command = new CreateBookCommand(_context);
+                command.Model = _mapper.Map<CreateBookModel>(newBook);
                 command.Handle();
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { error = ex.Message });
             }
-           
-            return Ok();
+
+            return Ok(); 
         }
-
-
-
 
 
         [HttpPut("{id}")]
@@ -91,10 +106,7 @@ namespace BookStore.Api.Controllers
 
             return Ok();
         }
-   
-
- 
-
+        
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
@@ -109,4 +121,4 @@ namespace BookStore.Api.Controllers
 
 
     }
-     }
+}
