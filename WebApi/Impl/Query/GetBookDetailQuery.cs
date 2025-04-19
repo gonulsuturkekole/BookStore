@@ -12,15 +12,24 @@ namespace WebApi.Impl.Query
             _dbContext = dbContext;
         }
 
-    public BookDetailResponseModel Handle()
+        public BookDetailResponseModel Handle()
         {
-            var book = _dbContext.Books.Where(book => book.Id == BookId).SingleOrDefault();
-            BookDetailResponseModel vm = new BookDetailResponseModel();
-            vm.Title = book.Title;
-            vm.PageCount = book.PageCount;
-            vm.PublishDate = book.PublishDate.Date.ToString("dd/MM/yyyy");
-            vm.Genre = ((GenreEnum)book.GenreId).ToString();
-                return vm;
+            var book = _dbContext.Books.SingleOrDefault(b => b.Id == BookId);
+
+            if (book == null)
+                throw new InvalidOperationException($" {BookId} book not found");
+
+            var vm = new BookDetailResponseModel
+            {
+                Title = book.Title,
+                PageCount = book.PageCount,
+                PublishDate = book.PublishDate.Date.ToString("dd/MM/yyyy"),
+                Genre = ((GenreEnum)book.GenreId).ToString()
+            };
+
+            return vm;
         }
+
     }
+
 }

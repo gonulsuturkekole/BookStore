@@ -5,6 +5,7 @@ using WebApi.Impl.Command;
 using WebApi.Impl.Model;
 using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
+using WebApi.Impl.Services;
 
 
 namespace BookStore.Api.Controllers
@@ -15,12 +16,15 @@ namespace BookStore.Api.Controllers
     {
         private readonly BookStoreDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IBookService _bookService;
 
-        public BooksController(BookStoreDbContext context, IMapper mapper)
+        public BooksController(BookStoreDbContext context, IMapper mapper, IBookService bookService)
         {
             _context = context;
             _mapper = mapper;
+            _bookService = bookService;
         }
+
 
         [HttpGet("GetAll")]
         public IActionResult GetAllBooks()
@@ -66,6 +70,14 @@ namespace BookStore.Api.Controllers
 
             return Ok(books.ToList());
         }
+
+        [HttpGet("fake")]
+        public IActionResult GetAllFromFakeService()
+        {
+            var books = _bookService.GetAllBooks();
+            return Ok(books);
+        }
+
 
 
         [HttpPost]

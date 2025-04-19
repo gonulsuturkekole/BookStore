@@ -12,7 +12,7 @@ using WebApi.DBOperations;
 namespace WebApi.Migrations
 {
     [DbContext(typeof(BookStoreDbContext))]
-    [Migration("20250409153746_InitialCreate")]
+    [Migration("20250419130540_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
