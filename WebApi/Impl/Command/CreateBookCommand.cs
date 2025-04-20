@@ -1,4 +1,5 @@
 ﻿using WebApi.DBOperations;
+using WebApi.Domain;
 using WebApi.Impl.Model;
 
 namespace WebApi.Impl.Command
@@ -21,7 +22,7 @@ namespace WebApi.Impl.Command
                 throw new InvalidOperationException("Kitap zaten var");
             book = new Book();
             book.Title = Model.Title;
-            book.PublishDate = DateTime.Parse(Model.PublishDate);
+            book.PublishDate = Model.PublishDate;
             book.PageCount = Model.PageCount;
             book.GenreId = Model.GenreId;
              

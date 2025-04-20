@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using WebApi.Common;
 using WebApi.DBOperations;
+using WebApi.Domain;
 
 namespace WebApi.Impl.Query
 {

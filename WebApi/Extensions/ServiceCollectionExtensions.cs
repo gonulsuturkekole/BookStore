@@ -1,7 +1,9 @@
 ﻿
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using WebApi.DBOperations;
 using WebApi.Impl.Services;
+
 
 namespace WebApi.Extensions
 {
@@ -16,6 +18,7 @@ namespace WebApi.Extensions
                 options.UseSqlServer(configuration.GetConnectionString("SqlServer")));
 
             services.AddScoped<IBookService, FakeBookService>();
+           
 
             return services;
         }

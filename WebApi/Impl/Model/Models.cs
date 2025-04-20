@@ -9,18 +9,15 @@ namespace WebApi.Impl.Model
         public string Title { get; set; }
         public int GenreId {  get; set; }
        public int PageCount { get; set; }
-        public string PublishDate { get; set; }
+        public DateTime PublishDate { get; set; }
 
     }
 }
 public class BookResponseModel : BaseEntity
 {
-    [Required(ErrorMessage = "Title is required")]
     public string Title { get; set; }
-    [Range(1, int.MaxValue, ErrorMessage = "The number of pages must be at least 1.")]
     public int PageCount { get; set; }
     public string PublishDate { get; set; }
-    [Required(ErrorMessage = "ID required")]
     public string Genre{ get; set; }
     public int Id { get; internal set; }
     public int GenreId { get; internal set; }

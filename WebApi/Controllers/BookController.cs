@@ -6,6 +6,8 @@ using WebApi.Impl.Model;
 using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
 using WebApi.Impl.Services;
+using FluentValidation;
+using WebApi.Domain;
 
 
 namespace BookStore.Api.Controllers
@@ -17,14 +19,15 @@ namespace BookStore.Api.Controllers
         private readonly BookStoreDbContext _context;
         private readonly IMapper _mapper;
         private readonly IBookService _bookService;
+        private readonly IValidator<CreateBookModel> _createBookValidator;
 
-        public BooksController(BookStoreDbContext context, IMapper mapper, IBookService bookService)
+        public BooksController(BookStoreDbContext context, IMapper mapper, IBookService bookService, IValidator<CreateBookModel> createBookValidator)
         {
             _context = context;
             _mapper = mapper;
             _bookService = bookService;
+            _createBookValidator = createBookValidator;
         }
-
 
         [HttpGet("GetAll")]
         public IActionResult GetAllBooks()
@@ -81,15 +84,20 @@ namespace BookStore.Api.Controllers
 
 
         [HttpPost]
-        public IActionResult Create([FromBody] BookResponseModel newBook)
+        public IActionResult Create([FromBody] CreateBookModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var result = _createBookValidator.Validate(model);
+            if (!result.IsValid)
+            {
+                return BadRequest(result.Errors);
+            }
 
             try
             {
-                CreateBookCommand command = new CreateBookCommand(_context);
-                command.Model = _mapper.Map<CreateBookModel>(newBook);
+                var command = new CreateBookCommand(_context)
+                {
+                    Model = model
+                };
                 command.Handle();
             }
             catch (Exception ex)
@@ -97,8 +105,10 @@ namespace BookStore.Api.Controllers
                 return BadRequest(new { error = ex.Message });
             }
 
-            return Ok(); 
+            return BadRequest(result.Errors.Select(e => new { field = e.PropertyName, message = e.ErrorMessage }));
+
         }
+
 
 
         [HttpPut("{id}")]
