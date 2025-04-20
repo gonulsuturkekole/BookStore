@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using WebApi.Impl.Services;
 using FluentValidation;
 using WebApi.Domain;
+using WebApi.Impl.Validations;
 
 
 namespace BookStore.Api.Controllers
@@ -37,24 +38,28 @@ namespace BookStore.Api.Controllers
             return Ok(result);
         }
 
+
         [HttpGet("{id}")]
         public IActionResult GetById(int id)
         {
-            BookDetailResponseModel result;
+            var validationResult = new IdValidator().Validate(id);
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(e => new { field = "id", error = e.ErrorMessage }));
+            }
+
             try
             {
-                GetBookDetailQuery query = new GetBookDetailQuery(_context);
-                query.BookId = id;
-                result = query.Handle();
+                var query = new GetBookDetailQuery(_context) { BookId = id };
+                var result = query.Handle();
+                return Ok(result);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
-            return Ok(result);
-
-
         }
+
 
         [HttpGet("list")]
         public IActionResult ListBooks([FromQuery] string name, [FromQuery] string sortBy = "title")
@@ -114,24 +119,32 @@ namespace BookStore.Api.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateBook(int id, [FromBody] UpdateBookModel updatedBook)
         {
-            try
+            var idValidation = new IdValidator().Validate(id);
+            if (!idValidation.IsValid)
+                return BadRequest(idValidation.Errors);
+
+            var modelValidation = new UpdateBookModelValidator().Validate(updatedBook);
+            if (!modelValidation.IsValid)
+                return BadRequest(modelValidation.Errors);
+
+            var command = new UpdateBookCommand(_context)
             {
-                UpdateBookCommand command = new UpdateBookCommand(_context);
-                command.BookId = id;
-                command.Model = updatedBook;
-                command.Handle();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                BookId = id,
+                Model = updatedBook
+            };
+            command.Handle();
 
             return Ok();
         }
-        
+
+
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
+            var validationResult = new IdValidator().Validate(id);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var book = _context.Books.Find(id);
             if (book == null) return NotFound(new { message = "Book not found." });
 
@@ -140,6 +153,7 @@ namespace BookStore.Api.Controllers
 
             return NoContent();
         }
+
 
 
     }

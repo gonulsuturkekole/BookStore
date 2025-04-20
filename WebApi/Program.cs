@@ -4,6 +4,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using WebApi.Domain;
 using WebApi.Extensions;
+using WebApi.Impl.Validations;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,7 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateBookModelValidator>();
 
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateBookModelValidator>();
 
 
 var app = builder.Build();

@@ -2,6 +2,7 @@
 using WebApi.Common;
 using WebApi.DBOperations;
 using WebApi.Domain;
+using WebApi.Impl.Model;
 
 namespace WebApi.Impl.Query
 {
@@ -13,23 +14,21 @@ namespace WebApi.Impl.Query
         {
             _dbContext = dbContext;
         }
-        
+
         public List<BookResponseModel> Handle()
         {
-            var bookList = _dbContext.Books.OrderBy(x => x.Id).ToList<Book>();
-            List<BookResponseModel> vm = new List<BookResponseModel>();
-            foreach (var book in bookList) 
-            {
-                vm.Add(new BookResponseModel()
+            var books = _dbContext.Books
+                .OrderBy(x => x.Id)
+                .Select(book => new BookResponseModel
                 {
                     Title = book.Title,
                     Genre = ((GenreEnum)book.GenreId).ToString(),
-                    PublishDate = book.PublishDate.ToString("dd/MM/yyyy"),
-                    PageCount = book.PageCount,
-                });
-            }
-            return vm;
-        }
+                    PublishDate = book.PublishDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+                    PageCount = book.PageCount
+                })
+                .ToList();
 
+            return books;
+        }
     }
 }
